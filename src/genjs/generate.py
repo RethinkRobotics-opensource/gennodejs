@@ -27,6 +27,7 @@ from os.path import join as pjoin
 from genmsg import SrvSpec, MsgSpec, MsgContext
 from genmsg.msg_loader import load_srv_from_file, load_msg_by_type
 import genmsg.gentools
+from copy import deepcopy
 
 try:
     from cStringIO import StringIO #Python 2.x
@@ -99,6 +100,31 @@ def has_typed_array(t):
 NUM_BYTES = {'int8': 1, 'int16': 2, 'int32': 4, 'int64': 8,
              'uint8': 1, 'uint16': 2, 'uint32': 4, 'uint64': 8,
              'byte': 1, 'bool': 1, 'char': 1, 'float32': 4, 'float64': 4}
+
+def get_default_value(field):
+    if field.is_array:
+        if not field.array_len:
+            return '[]'
+        else:
+            field_copy = deepcopy(field)
+            field_copy.is_array = False;
+            field_default = get_default_value(field_copy)
+            return 'new Array({}).fill({})'.format(field.array_len, field_default)
+    elif field.is_builtin:
+        if is_string(field.type):
+            return '\'\''
+        elif is_time(field.type):
+            return '{secs: 0, nsecs: 0}'
+        elif is_bool(field.type):
+            return 'false'
+        elif is_float(field.type):
+            return '0.0'
+        else:
+            return '0';
+    # else
+    (package, msg_type) = field.base_type.split('/')
+    return 'new {}.msg.{}()'.format(package, msg_type)
+
 
 
 
@@ -235,15 +261,22 @@ def write_requires(s, spec, previous_packages=None, prev_deps=None, isSrv=False)
     return found_packages, local_deps
 
 def write_msg_constructor_field(s, field):
-    s.write('this.{} = obj.{}'.format(field.name, field.name))
+    s.write('this.{} = {};'.format(field.name, get_default_value(field)))
 
 def write_class(s, spec):
-    s.write('let {}  = {{'.format(spec.actual_name))
+    s.write('class {} {{'.format(spec.actual_name))
+    with Indent(s):
+        s.write('constructor() {')
+        with Indent(s):
+            for field in spec.parsed_fields():
+                write_msg_constructor_field(s, field)
+        s.write('}')
+    s.newline()
 
 def write_end(s, spec):
     s.write('};')
     s.newline();
-    # write_constants(s, spec)
+    write_constants(s, spec)
     s.write('module.exports = {};'.format(spec.actual_name))
 
 def write_serialize_base(s, rest):
@@ -304,13 +337,13 @@ def write_serialize(s, spec):
     Write the serialize method
     """
     with Indent(s):
-        s.write('serialize(obj, bufferInfo) {')
+        s.write('static serialize(obj, bufferInfo) {')
         with Indent(s):
             s.write('// Serializes a message object of type {}'.format(spec.short_name))
             for f in spec.parsed_fields():
                 write_serialize_field(s, f, spec.package)
             s.write('return bufferInfo;')
-        s.write('},')
+        s.write('}')
         s.newline()
 
 # t2 can get rid of is_array
@@ -381,7 +414,7 @@ def write_deserialize(s, spec):
     Write the deserialize method
     """
     with Indent(s):
-        s.write('deserialize(buffer) {')
+        s.write('static deserialize(buffer) {')
         with Indent(s):
             s.write('//deserializes a message object of type {}'.format(spec.short_name))
             s.write('let tmp;')
@@ -395,7 +428,7 @@ def write_deserialize(s, spec):
                 s.write('data: data,')
                 s.write('buffer: buffer')
             s.write('}')
-        s.write('},')
+        s.write('}')
         s.newline()
 
 def write_package_index(s, package_dir):
@@ -443,27 +476,27 @@ def write_srv_index(s, srvs, pkg):
 
 def write_ros_datatype(s, spec):
     with Indent(s):
-        s.write('datatype() {')
+        s.write('static datatype() {')
         with Indent(s):
             s.write('// Returns string type for a %s object'%spec.component_type)
             s.write('return \'{}\';'.format(spec.full_name))
-        s.write('},')
+        s.write('}')
         s.newline()
 
 def write_md5sum(s, msg_context, spec, parent=None):
     md5sum = genmsg.compute_md5(msg_context, parent or spec)
     with Indent(s):
-        s.write('md5sum() {')
+        s.write('static md5sum() {')
         with Indent(s):
             # t2 this should print 'service' instead of 'message' if it's a service request or response
             s.write('//Returns md5sum for a message object')
             s.write('return \'{}\';'.format(md5sum))
-        s.write('},')
+        s.write('}')
         s.newline()
 
 def write_message_definition(s, msg_context, spec):
     with Indent(s):
-        s.write('messageDefinition() {')
+        s.write('static messageDefinition() {')
         with Indent(s):
             s.write('// Returns full string definition for message')
             definition = genmsg.compute_full_text(msg_context, spec)
@@ -478,11 +511,13 @@ def write_message_definition(s, msg_context, spec):
 def write_constants(s, spec):
     if spec.constants:
         s.write('// Constants for message')
-        s.write('{}.constants = {{'.format(spec.short_name))
+        s.write('{}.Constants = {{'.format(spec.short_name))
         with Indent(s):
             for c in spec.constants:
-                # FIXME: deal with type of default value...
-                s.write('{}: {},'.format(c.name.upper(), c.val))
+                if is_string(c.type):
+                    s.write('{}: \'{}\','.format(c.name.upper(), c.val))
+                else:
+                    s.write('{}: {},'.format(c.name.upper(), c.val))
         s.write('}')
         s.newline()
 
