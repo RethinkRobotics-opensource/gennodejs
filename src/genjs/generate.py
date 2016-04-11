@@ -531,6 +531,7 @@ def write_srv_component(s, spec, context, parent):
     write_message_definition(s, context, spec)
     s.write('};')
     s.newline()
+    write_constants(s, spec)
 
 def write_srv_end(s, name):
     s.write('module.exports = {')
