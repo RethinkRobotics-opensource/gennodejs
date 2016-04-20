@@ -1,14 +1,14 @@
 <?xml version="1.0"?>
 <package>
   <name>genjs</name>
-  <version>0.4.15</version>
+  <version>1.0.0</version>
   <description>
   Javascript ROS message and service generators.
   </description>
   <maintainer email="csmith@rethinkrobotics.com">Chris Smith</maintainer>
   <license>Apache 2.0</license>
 
-  <buildtool_depend version_gte="0.5.78">catkin</buildtool_depend>
+  <buildtool_depend>catkin</buildtool_depend>
 
   <build_depend>genmsg</build_depend>
 
