@@ -127,13 +127,17 @@ let TimeSerializer = function(val, bufferInfo) {
   return bufferInfo;
 }
 
+let BoolSerializer = function(val, bufferInfo) {
+  return Int8Serializer(val ? 1 : 0, bufferInfo)
+}
+
 //-----------------------------------------------------------------------------
 
 module.exports = {
   string: StringSerializer,
   float32: Float32Serializer,
   float64: Float64Serializer,
-  bool: Int8Serializer,
+  bool: BoolSerializer,
   int8: Int8Serializer,
   int16: Int16Serializer,
   int32: Int32Serializer,

@@ -136,13 +136,19 @@ let TimeDeserializer = function(buffer) {
   };
 }
 
+let BoolDeserializer = function(buffer) {
+  let ret = Int8Deserializer(buffer);
+  ret.data = !!ret.data;
+  return ret;
+};
+
 //-----------------------------------------------------------------------------
 
 module.exports = {
   string: StringDeserializer,
   float32: Float32Deserializer,
   float64: Float64Deserializer,
-  bool: Int8Deserializer,
+  bool: BoolDeserializer,
   int8: Int8Deserializer,
   int16: Int16Deserializer,
   int32: Int32Deserializer,
