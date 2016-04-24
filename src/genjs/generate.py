@@ -101,14 +101,14 @@ NUM_BYTES = {'int8': 1, 'int16': 2, 'int32': 4, 'int64': 8,
              'uint8': 1, 'uint16': 2, 'uint32': 4, 'uint64': 8,
              'byte': 1, 'bool': 1, 'char': 1, 'float32': 4, 'float64': 4}
 
-def get_default_value(field):
+def get_default_value(field, current_message_package):
     if field.is_array:
         if not field.array_len:
             return '[]'
         else:
             field_copy = deepcopy(field)
             field_copy.is_array = False;
-            field_default = get_default_value(field_copy)
+            field_default = get_default_value(field_copy, current_message_package)
             return 'new Array({}).fill({})'.format(field.array_len, field_default)
     elif field.is_builtin:
         if is_string(field.type):
@@ -123,7 +123,10 @@ def get_default_value(field):
             return '0';
     # else
     (package, msg_type) = field.base_type.split('/')
-    return 'new {}.msg.{}()'.format(package, msg_type)
+    if package == current_message_package:
+        return 'new {}()'.format(msg_type)
+    else:
+        return 'new {}.msg.{}()'.format(package, msg_type)
 
 
 
@@ -224,18 +227,15 @@ def write_begin(s, spec, is_service=False):
 
 def write_requires(s, spec, previous_packages=None, prev_deps=None, isSrv=False):
     "Writes out the require fields"
-    base_path = find_path_from_cmake_path('share/genjs/base/')
-    if base_path is None:
-        raise Error('Oh no!')
     if previous_packages is None:
         s.write('"use strict";')
         s.newline()
-        s.write('let Serializer = require(\'{}\');'.format(pjoin(base_path, 'base_serialize.js')));
-        s.write('let Deserializer = require(\'{}\');'.format(pjoin(base_path, 'base_deserialize.js')));
+        s.write('let _serializer = require(\'../../../base_serialize.js\');')
+        s.write('let _deserializer = require(\'../../../base_deserialize.js\');')
+        s.write('let _finder = require(\'../../../find.js\');')
         previous_packages = {}
     if prev_deps is None:
         prev_deps = []
-    # print spec.parsed_fields()
     # find other message packages and other messages in this packages
     # that this message depends on
     found_packages, local_deps = find_requires(spec)
@@ -254,14 +254,17 @@ def write_requires(s, spec, previous_packages=None, prev_deps=None, isSrv=False)
     # filter out previously found packages
     found_packages = {key: val for (key, val) in found_packages.items() if key not in previous_packages}
     for (package, path) in found_packages.items():
-        s.write('let {} = require(\'{}\');'.format(package, pjoin(path, '_index.js')))
+        # TODO: finder is only relevant to node - we should support an option to
+        #   create a flat message package directory. The downside is that it requires
+        #   copying files between workspaces.
+        s.write('let {0} = _finder(\'{0}\');'.format(package))
     s.newline()
     s.write('//-----------------------------------------------------------')
     s.newline()
     return found_packages, local_deps
 
-def write_msg_constructor_field(s, field):
-    s.write('this.{} = {};'.format(field.name, get_default_value(field)))
+def write_msg_constructor_field(s, spec, field):
+    s.write('this.{} = {};'.format(field.name, get_default_value(field, spec.package)))
 
 def write_class(s, spec):
     s.write('class {} {{'.format(spec.actual_name))
@@ -269,7 +272,7 @@ def write_class(s, spec):
         s.write('constructor() {')
         with Indent(s):
             for field in spec.parsed_fields():
-                write_msg_constructor_field(s, field)
+                write_msg_constructor_field(s, spec, field)
         s.write('}')
     s.newline()
 
@@ -285,7 +288,7 @@ def write_serialize_base(s, rest):
 def write_serialize_length(s, name):
     #t2
     s.write('// Serialize the length for message field [{}]'.format(name))
-    write_serialize_base(s, 'Serializer.uint32(obj.{}.length, bufferInfo)'.format(name))
+    write_serialize_base(s, '_serializer.uint32(obj.{}.length, bufferInfo)'.format(name))
 
 # adds function to serialize builtin types (string, uint8, ...)
 def write_serialize_builtin(s, f):
@@ -297,10 +300,10 @@ def write_serialize_builtin(s, f):
         else:
             s.write('obj.{}.forEach((val) => {{'.format(f.name))
             with Indent(s):
-                write_serialize_base(s, 'Serializer.{}(val, bufferInfo)'.format(f.base_type))
+                write_serialize_base(s, '_serializer.{}(val, bufferInfo)'.format(f.base_type))
             s.write('});')
     else:
-        write_serialize_base(s, 'Serializer.{}(obj.{}, bufferInfo)'.format(f.type, f.name))
+        write_serialize_base(s, '_serializer.{}(obj.{}, bufferInfo)'.format(f.type, f.name))
 
 # adds function to serlialize complex type (geometry_msgs/Pose)
 def write_serialize_complex(s, f, thisPackage):
@@ -349,7 +352,7 @@ def write_serialize(s, spec):
 # t2 can get rid of is_array
 def write_deserialize_length(s, name):
     s.write('// Deserialize array length for message field [{}]'.format(name))
-    s.write('tmp = Deserializer.uint32(buffer);')
+    s.write('tmp = _deserializer.uint32(buffer);')
     s.write('len = tmp.data;')
     s.write('buffer = tmp.buffer;')
 
@@ -385,12 +388,12 @@ def write_deserialize_builtin(s, f):
             s.write('data.{} = new Array(len);'.format(f.name))
             s.write('for (let i = 0; i < len; ++i) {')
             with Indent(s):
-                s.write('tmp = Deserializer.{}(buffer);'.format(f.base_type))
+                s.write('tmp = _deserializer.{}(buffer);'.format(f.base_type))
                 s.write('data.{}[i] = tmp.data;'.format(f.name))
                 s.write('buffer = tmp.buffer;')
             s.write('}')
     else:
-        s.write('tmp = Deserializer.{}(buffer);'.format(f.base_type))
+        s.write('tmp = _deserializer.{}(buffer);'.format(f.base_type))
         s.write('data.{} = tmp.data;'.format(f.name))
         s.write('buffer = tmp.buffer;')
 
@@ -546,22 +549,12 @@ def generate_msg(pkg, files, out_dir, search_path):
     Generate javascript code for all messages in a package
     """
     msg_context = MsgContext.create_default()
-    #print 'GENERATE ', pkg, ' MESSAGES\n', files
     for f in files:
         f = os.path.abspath(f)
         infile = os.path.basename(f)
         full_type = genmsg.gentools.compute_full_type_name(pkg, infile)
         spec = genmsg.msg_loader.load_msg_from_file(msg_context, f, full_type)
         generate_msg_from_spec(msg_context, spec, search_path, out_dir, pkg)
-
-    # include the base serializer, deserializer files -- should be centralized somehow but...
-    #print os.getcwd()
-    package_dir = os.path.dirname(out_dir)
-    base_path = find_path_from_cmake_path('share/genjs/base')
-    with open(pjoin(package_dir, '_base_serialize.js'), 'w') as WriteFile, open(pjoin(base_path, 'base_serialize.js'), 'r') as ReadFile:
-        WriteFile.write(ReadFile.read())
-    with open(pjoin(package_dir, '_base_deserialize.js'), 'w') as WriteFile, open(pjoin(base_path, 'base_deserialize.js'), 'r') as ReadFile:
-        WriteFile.write(ReadFile.read())
 
 def generate_srv(pkg, files, out_dir, search_path):
     """
@@ -574,15 +567,6 @@ def generate_srv(pkg, files, out_dir, search_path):
         full_type = genmsg.gentools.compute_full_type_name(pkg, infile)
         spec = genmsg.msg_loader.load_srv_from_file(msg_context, f, full_type)
         generate_srv_from_spec(msg_context, spec, search_path, out_dir, pkg, f)
-
-    # include the base serializer, deserializer files -- should be centralized somehow but...
-    #print os.getcwd()
-    package_dir = os.path.dirname(out_dir)
-    base_path = find_path_from_cmake_path('share/genjs/base')
-    with open(pjoin(package_dir, '_base_serialize.js'), 'w') as WriteFile, open(pjoin(base_path, 'base_serialize.js'), 'r') as ReadFile:
-        WriteFile.write(ReadFile.read())
-    with open(pjoin(package_dir, '_base_deserialize.js'), 'w') as WriteFile, open(pjoin(base_path, 'base_deserialize.js'), 'r') as ReadFile:
-        WriteFile.write(ReadFile.read())
 
 def msg_list(pkg, search_path, ext):
     dir_list = search_path[pkg]
@@ -599,11 +583,9 @@ def generate_msg_from_spec(msg_context, spec, search_path, output_dir, package, 
     @type msg_path: str
     """
     genmsg.msg_loader.load_depends(msg_context, spec, search_path)
-    #print 'FULL NAME', spec.full_name
     spec.actual_name=spec.short_name
     spec.component_type='message'
     msgs = msg_list(package, search_path, '.msg')
-    #print 'ALL MSGS IN PKG', msgs
     for m in msgs:
         genmsg.load_msg_by_type(msg_context, '%s/%s'%(package, m), search_path)
 
