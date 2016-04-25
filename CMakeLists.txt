@@ -1,23 +1,23 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(genjs)
+project(gennodejs)
 find_package(catkin REQUIRED COMPONENTS genmsg)
 
 catkin_package(
   CATKIN_DEPENDS genmsg
-  CFG_EXTRAS genjs-extras.cmake
+  CFG_EXTRAS gennodejs-extras.cmake
 )
 
 add_subdirectory(scripts)
 
-file(WRITE ${CATKIN_DEVEL_PREFIX}/${GENMSG_LANGS_DESTINATION}/genjs "JAVASCRIPT")
-install(FILES ${CATKIN_DEVEL_PREFIX}/${GENMSG_LANGS_DESTINATION}/genjs
+file(WRITE ${CATKIN_DEVEL_PREFIX}/${GENMSG_LANGS_DESTINATION}/gennodejs "JAVASCRIPT")
+install(FILES ${CATKIN_DEVEL_PREFIX}/${GENMSG_LANGS_DESTINATION}/gennodejs
   DESTINATION ${GENMSG_LANGS_DESTINATION})
 
 # install base serialization, deserialization files
 set(base_files
-  src/genjs/base_serialize.js
-  src/genjs/base_deserialize.js
-  src/genjs/find.js)
+  src/gennodejs/base_serialize.js
+  src/gennodejs/base_deserialize.js
+  src/gennodejs/find.js)
 
 file(COPY ${base_files} DESTINATION ${CATKIN_DEVEL_PREFIX}/share/node_js)
 install(FILES ${base_files}
