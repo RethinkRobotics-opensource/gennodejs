@@ -1,9 +1,9 @@
 @[if DEVELSPACE]@
 # bin variable in develspace
-set(GENNODEJS_BIN "@(CMAKE_CURRENT_SOURCE_DIR)/scripts/gennodejs.py")
+set(GENNODEJS_BIN "@(CMAKE_CURRENT_SOURCE_DIR)/scripts/gen_nodejs.py")
 @[else]@
 # bin variable in installspace
-set(GENNODEJS_BIN "${gennodejs_DIR}/../../../@(CATKIN_PACKAGE_BIN_DESTINATION)/gennodejs.py")
+set(GENNODEJS_BIN "${gennodejs_DIR}/../../../@(CATKIN_PACKAGE_BIN_DESTINATION)/gen_nodejs.py")
 @[end if]@
 
 # Generate .msg or .srv -> .js
@@ -28,7 +28,7 @@ macro(_generate_nodejs ARG_PKG ARG_MSG ARG_IFLAGS ARG_MSG_DEPS ARG_GEN_OUTPUT_DI
     COMMENT "Generating Javascript code from ${ARG_PKG}/${MSG_NAME}"
     )
 
-  list(APPEND ALL_GEN_OUTPUT_FILES_js ${GEN_OUTPUT_FILE})
+  list(APPEND ALL_GEN_OUTPUT_FILES_nodejs ${GEN_OUTPUT_FILE})
 
 endmacro()
 
