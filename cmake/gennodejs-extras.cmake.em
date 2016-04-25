@@ -8,7 +8,7 @@ set(GENNODEJS_BIN "${gennodejs_DIR}/../../../@(CATKIN_PACKAGE_BIN_DESTINATION)/g
 
 # Generate .msg or .srv -> .js
 # The generated .js files should be added ALL_GEN_OUTPUT_FILES_js
-macro(_generate_js ARG_PKG ARG_MSG ARG_IFLAGS ARG_MSG_DEPS ARG_GEN_OUTPUT_DIR)
+macro(_generate_nodejs ARG_PKG ARG_MSG ARG_IFLAGS ARG_MSG_DEPS ARG_GEN_OUTPUT_DIR)
   file(MAKE_DIRECTORY ${ARG_GEN_OUTPUT_DIR})
 
   #Create input and output filenames
@@ -33,16 +33,16 @@ macro(_generate_js ARG_PKG ARG_MSG ARG_IFLAGS ARG_MSG_DEPS ARG_GEN_OUTPUT_DIR)
 endmacro()
 
 #gennodejs uses the same program to generate srv and msg files, so call the same macro
-macro(_generate_msg_js ARG_PKG ARG_MSG ARG_IFLAGS ARG_MSG_DEPS ARG_GEN_OUTPUT_DIR)
-  _generate_js(${ARG_PKG} ${ARG_MSG} "${ARG_IFLAGS}" "${ARG_MSG_DEPS}" "${ARG_GEN_OUTPUT_DIR}/msg")
+macro(_generate_msg_nodejs ARG_PKG ARG_MSG ARG_IFLAGS ARG_MSG_DEPS ARG_GEN_OUTPUT_DIR)
+  _generate_nodejs(${ARG_PKG} ${ARG_MSG} "${ARG_IFLAGS}" "${ARG_MSG_DEPS}" "${ARG_GEN_OUTPUT_DIR}/msg")
 endmacro()
 
 #gennodejs uses the same program to generate srv and msg files, so call the same macro
-macro(_generate_srv_js ARG_PKG ARG_SRV ARG_IFLAGS ARG_MSG_DEPS ARG_GEN_OUTPUT_DIR)
-  _generate_js(${ARG_PKG} ${ARG_SRV} "${ARG_IFLAGS}" "${ARG_MSG_DEPS}" "${ARG_GEN_OUTPUT_DIR}/srv")
+macro(_generate_srv_nodejs ARG_PKG ARG_SRV ARG_IFLAGS ARG_MSG_DEPS ARG_GEN_OUTPUT_DIR)
+  _generate_nodejs(${ARG_PKG} ${ARG_SRV} "${ARG_IFLAGS}" "${ARG_MSG_DEPS}" "${ARG_GEN_OUTPUT_DIR}/srv")
 endmacro()
 
-macro(_generate_module_js ARG_PKG ARG_GEN_OUTPUT_DIR ARG_GENERATED_FILES)
+macro(_generate_module_nodejs ARG_PKG ARG_GEN_OUTPUT_DIR ARG_GENERATED_FILES)
 endmacro()
 
 set(node_js_INSTALL_DIR share/node_js)
