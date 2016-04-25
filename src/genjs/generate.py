@@ -360,7 +360,9 @@ def write_deserialize_complex(s, f, thisPackage):
     (package, msg_type) = f.base_type.split('/')
     samePackage = package == thisPackage
     if f.is_array:
-        s.write('data.{} = new Array(len);'.format(f.name))
+        # only create a new array if it has non-constant length
+        if not f.array_len:
+            s.write('data.{} = new Array(len);'.format(f.name))
         s.write('for (let i = 0; i < len; ++i) {')
         with Indent(s):
             if samePackage:
@@ -385,7 +387,9 @@ def write_deserialize_builtin(s, f):
             s.write('data.{} = buffer.slice(0, len);'.format(f.name))
             s.write('buffer =  buffer.slice(len);')
         else:
-            s.write('data.{} = new Array(len);'.format(f.name))
+            # only create a new array if it has non-constant length
+            if not f.array_len:
+                s.write('data.{} = new Array(len);'.format(f.name))
             s.write('for (let i = 0; i < len; ++i) {')
             with Indent(s):
                 s.write('tmp = _deserializer.{}(buffer);'.format(f.base_type))
@@ -422,7 +426,7 @@ def write_deserialize(s, spec):
             s.write('//deserializes a message object of type {}'.format(spec.short_name))
             s.write('let tmp;')
             s.write('let len;')
-            s.write('let data = {};')
+            s.write('let data = new {}();'.format(spec.short_name))
             for f in spec.parsed_fields():
                 write_deserialize_field(s, f, spec.package)
 
