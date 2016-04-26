@@ -22,4 +22,4 @@ import gennodejs
 import sys
 
 if __name__ == "__main__":
-    gennodejs.gennodejs_main.genmain(sys.argv, 'gennodejs.py')
+    gennodejs.gennodejs_main.genmain(sys.argv, 'gen_nodejs.py')
