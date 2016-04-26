@@ -1,5 +1,5 @@
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Changelog for package genjs
+Changelog for package gennodejs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 1.0.0 (2016-4-19)

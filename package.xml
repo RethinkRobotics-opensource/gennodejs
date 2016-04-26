@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-  <name>genjs</name>
+  <name>gennodejs</name>
   <version>1.0.0</version>
   <description>
   Javascript ROS message and service generators.

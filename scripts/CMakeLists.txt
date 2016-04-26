@@ -1,3 +1,3 @@
 catkin_install_python(
-  PROGRAMS gen_js.py
+  PROGRAMS gen_nodejs.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})

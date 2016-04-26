@@ -18,8 +18,8 @@
 ##
 ## Converts ROS .msg files in a package into JS source files
 
-import genjs
+import gennodejs
 import sys
 
 if __name__ == "__main__":
-    genjs.genjs_main.genmain(sys.argv, 'gen_js.py')
+    gennodejs.gennodejs_main.genmain(sys.argv, 'gen_nodejs.py')
