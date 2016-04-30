@@ -195,7 +195,7 @@ def find_path_from_cmake_path(path):
     return None
 
 def find_path_for_package(package):
-    return find_path_from_cmake_path(pjoin('share/node_js/ros', package))
+    return find_path_from_cmake_path(pjoin('share/gennodejs/ros', package))
 
 def find_requires(spec):
     found_packages = {}
@@ -230,9 +230,9 @@ def write_requires(s, spec, previous_packages=None, prev_deps=None, isSrv=False)
     if previous_packages is None:
         s.write('"use strict";')
         s.newline()
-        s.write('let _serializer = require(\'../../../base_serialize.js\');')
-        s.write('let _deserializer = require(\'../../../base_deserialize.js\');')
-        s.write('let _finder = require(\'../../../find.js\');')
+        s.write('let _serializer = require(\'../base_serialize.js\');')
+        s.write('let _deserializer = require(\'../base_deserialize.js\');')
+        s.write('let _finder = require(\'../find.js\');')
         previous_packages = {}
     if prev_deps is None:
         prev_deps = []

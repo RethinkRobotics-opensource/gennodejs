@@ -22,7 +22,7 @@ let path = require('path');
 
 let cmakePath = process.env.CMAKE_PREFIX_PATH;
 let cmakePaths = cmakePath.split(':');
-let jsMsgPath = 'share/node_js/ros';
+let jsMsgPath = 'share/gennodejs/ros';
 
 let packagePaths = {};
 
