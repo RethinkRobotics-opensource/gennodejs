@@ -14,6 +14,8 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+from __future__ import print_function
+
 import sys
 import os
 import traceback
@@ -212,7 +214,7 @@ def find_requires(spec):
             else:
                 path = find_path_for_package(field_type_package)
                 if path is None:
-                    print 'Couldn\'t find path for type ', field.base_type
+                    print('Couldn\'t find path for type {}'.format(field.base_type))
                 else:
                     found_packages[field_type_package] = path
 
