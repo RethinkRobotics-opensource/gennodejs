@@ -1,6 +1,12 @@
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Changelog for package gennodejs
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+1.0.2 (2016-5-18)
+------------------
+* Fixed gennodejs file deployment in install space
+* Fixed a python3 incompatibility in generate.py
+* Contributors: Chris Smith, Ian McMahon, Maarten de Vries
 
 1.0.1 (2016-4-27)
 -----------
