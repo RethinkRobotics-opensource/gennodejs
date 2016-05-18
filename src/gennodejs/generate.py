@@ -197,7 +197,7 @@ def find_path_from_cmake_path(path):
     return None
 
 def find_path_for_package(package):
-    return find_path_from_cmake_path(pjoin('share/node_js/ros', package))
+    return find_path_from_cmake_path(pjoin('share/gennodejs/ros', package))
 
 def find_requires(spec):
     found_packages = {}
