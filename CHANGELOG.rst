@@ -2,6 +2,13 @@
 Changelog for package gennodejs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.3 (2016-5-18)
+------------------
+* Removed extraneous base file installs
+* Revert install space fix that re-used base js files per package
+* Added install space fix that copies base js files per package
+* Contributors: Ian McMahon, Rob Linsalata
+
 1.0.2 (2016-5-18)
 ------------------
 * Fixed gennodejs file deployment in install space
