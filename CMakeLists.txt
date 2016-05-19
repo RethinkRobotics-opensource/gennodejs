@@ -19,7 +19,6 @@ set(base_files
   src/gennodejs/base_deserialize.js
   src/gennodejs/find.js)
 
-file(COPY ${base_files} DESTINATION ${CATKIN_DEVEL_PREFIX}/share/gennodejs)
 install(FILES ${base_files}
   DESTINATION ${CATKIN_GLOBAL_SHARE_DESTINATION}/gennodejs)
 
