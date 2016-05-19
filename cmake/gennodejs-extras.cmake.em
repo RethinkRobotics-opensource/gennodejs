@@ -44,17 +44,14 @@ macro(_generate_srv_nodejs ARG_PKG ARG_SRV ARG_IFLAGS ARG_MSG_DEPS ARG_GEN_OUTPU
   _generate_nodejs(${ARG_PKG} ${ARG_SRV} "${ARG_IFLAGS}" "${ARG_MSG_DEPS}" "${ARG_GEN_OUTPUT_DIR}/srv")
 endmacro()
 
-set(base_files
-  "${JS_FILES_DIR}/base_serialize.js"
-  "${JS_FILES_DIR}/base_deserialize.js"
-  "${JS_FILES_DIR}/find.js")
-
 macro(_generate_module_nodejs ARG_PKG ARG_GEN_OUTPUT_DIR ARG_GENERATED_FILES)
-    file(COPY ${base_files} DESTINATION "${ARG_GEN_OUTPUT_DIR}/../..")
-endmacro()
+  set(base_files
+    "${JS_FILES_DIR}/base_serialize.js"
+    "${JS_FILES_DIR}/base_deserialize.js"
+    "${JS_FILES_DIR}/find.js")
 
-install(FILES ${base_files}
-  DESTINATION ${CATKIN_GLOBAL_SHARE_DESTINATION}/gennodejs)
+    file(COPY ${base_files} DESTINATION ${ARG_GEN_OUTPUT_DIR})
+endmacro()
 
 set(node_js_INSTALL_DIR share/gennodejs)
 set(gennodejs_INSTALL_DIR ${node_js_INSTALL_DIR}/ros)
