@@ -286,10 +286,10 @@ def write_requires(s, spec, previous_packages=None, prev_deps=None, isSrv=False)
     if previous_packages is None:
         s.write('"use strict";')
         s.newline()
-        s.write('let _rosnodejs_msgs = require(\'rosnodejs_msgs\');')
-        s.write('let _serializer = _rosnodejs_msgs.Serialize;')
-        s.write('let _deserializer = _rosnodejs_msgs.Deserialize;')
-        s.write('let _finder = _rosnodejs_msgs.Find;')
+        s.write('let _ros_msg_utils = require(\'ros_msg_utils\');')
+        s.write('let _serializer = _ros_msg_utils.Serialize;')
+        s.write('let _deserializer = _ros_msg_utils.Deserialize;')
+        s.write('let _finder = _ros_msg_utils.Find;')
         previous_packages = {}
     if prev_deps is None:
         prev_deps = []
