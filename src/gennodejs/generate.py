@@ -336,6 +336,7 @@ def write_class(s, spec):
         # TODO: add optional object argument
         s.write('constructor(object) {')
         with Indent(s):
+            s.write('object = object || {};')
             for field in spec.parsed_fields():
                 write_msg_constructor_field(s, spec, field)
         s.write('}')
@@ -365,15 +366,7 @@ def write_serialize_length_check(s, field):
 # adds function to serialize builtin types (string, uint8, ...)
 def write_serialize_builtin(s, f):
     if (f.is_array):
-        if f.base_type == 'uint8':
-            # FIXME: do this for more than uint8
-            s.write('buffer.write(obj.{});'.format(f.name))
-            s.write('bufferOffset += obj.{}.length;'.format(f.name))
-        else:
-            s.write('obj.{}.forEach((val) => {{'.format(f.name))
-            with Indent(s):
-                write_serialize_base(s, '_serializer.{}(val, buffer, bufferOffset)'.format(f.base_type))
-            s.write('});')
+        write_serialize_base(s, '_serializer.ArraySerializer(_serializer.{}, obj.{}, buffer, bufferOffset)'.format(f.base_type, f.name))
     else:
         write_serialize_base(s, '_serializer.{}(obj.{}, buffer, bufferOffset)'.format(f.type, f.name))
 
@@ -382,13 +375,10 @@ def write_serialize_complex(s, f, thisPackage):
     (package, msg_type) = f.base_type.split('/')
     samePackage =  package == thisPackage
     if (f.is_array):
-        s.write('obj.{}.forEach((val) => {{'.format(f.name))
-        with Indent(s):
-            if samePackage:
-                write_serialize_base(s, '{}.serialize(val, buffer, bufferOffset)'.format(msg_type))
-            else:
-                write_serialize_base(s, '{}.msg.{}.serialize(val, buffer, bufferOffset)'.format(package, msg_type))
-        s.write('});')
+        if samePackage:
+            write_serialize_base(s, '_serializer.ArraySerializer({}.serialize, obj.{}, buffer, bufferOffset)'.format(msg_type, f.name))
+        else:
+            write_serialize_base(s, '_serializer.ArraySerializer({}.msg.{}.serialize, obj.{}, buffer, bufferOffset)'.format(package, msg_type, f.name))
     else:
         if samePackage:
             write_serialize_base(s, '{}.serialize(obj.{}, buffer, bufferOffset)'.format(msg_type, f.name))
@@ -426,7 +416,7 @@ def write_serialize(s, spec):
 # t2 can get rid of is_array
 def write_deserialize_length(s, name):
     s.write('// Deserialize array length for message field [{}]'.format(name))
-    s.write('len = _deserializer.uint32(buffer, bufferInfo);')
+    s.write('len = _deserializer.uint32(buffer, bufferOffset);')
 
 def write_deserialize_complex(s, f, thisPackage):
     (package, msg_type) = f.base_type.split('/')
@@ -435,43 +425,30 @@ def write_deserialize_complex(s, f, thisPackage):
         # only create a new array if it has non-constant length
         if not f.array_len:
             s.write('data.{} = new Array(len);'.format(f.name))
-        s.write('for (let i = 0; i < len; ++i) {')
-        with Indent(s):
-            if samePackage:
-                s.write('data.{}[i] = {}.deserialize(buffer, bufferInfo);'.format(f.name, msg_type))
-            else:
-                s.write('data.{}[i] = {}.msg.{}.deserialize(buffer, bufferInfo);'.format(f.name, package, msg_type))
-        s.write('}')
+        if samePackage:
+            s.write('_deserializer.ArrayDeserializer({}.deserialize, buffer, bufferOffset, data.{})'.format(msg_type, f.name));
+        else:
+            s.write('_deserializer.ArrayDeserializer({}.msg.{}.deserialize, buffer, bufferOffset, data.{})'.format(package, msg_type, f.name));
     else:
         if samePackage:
-            s.write('data.{}[i] = {}.deserialize(buffer, bufferInfo);'.format(f.name, msg_type))
+            s.write('data.{} = {}.deserialize(buffer, bufferOffset);'.format(f.name, msg_type))
         else:
-            s.write('data.{}[i] = {}.msg.{}.deserialize(buffer, bufferInfo);'.format(f.name, package, msg_type))
+            s.write('data.{} = {}.msg.{}.deserialize(buffer, bufferOffset);'.format(f.name, package, msg_type))
 
 def write_deserialize_builtin(s, f):
     if f.is_array:
-        if f.base_type == 'uint8':
-            # FIXME: do this for more than just uint8
-            s.write('data.{} = buffer.slice(0, len);'.format(f.name))
-            s.write('bufferInfo.bufferOffset += len;')
-        else:
-            # only create a new array if it has non-constant length
-            if not f.array_len:
-                s.write('data.{} = new Array(len);'.format(f.name))
-            s.write('for (let i = 0; i < len; ++i) {')
-            with Indent(s):
-                s.write('data.{}[i] = _deserializer.{}(buffer, bufferInfo);'.format(f.name, f.base_type))
-            s.write('}')
+        # only create a new array if it has non-constant length
+        if not f.array_len:
+            s.write('data.{} = new Array(len);'.format(f.name))
+        s.write('_deserializer.ArrayDeserializer(_deserializer.{}, buffer, bufferOffset, data.{})'.format(f.base_type, f.name));
     else:
-        s.write('data.{} = _deserializer.{}(buffer, bufferInfo);'.format(f.name, f.base_type))
+        s.write('data.{} = _deserializer.{}(buffer, bufferOffset);'.format(f.name, f.base_type))
 
 
 def write_deserialize_field(s, f, package):
     if f.is_array:
         if not f.array_len:
             write_deserialize_length(s, f.name)
-        else:
-            s.write('len = {};'.format(f.array_len))
 
     s.write('// Deserialize message field [{}]'.format(f.name))
     if f.is_builtin:
@@ -485,7 +462,7 @@ def write_deserialize(s, spec):
     Write the deserialize method
     """
     with Indent(s):
-        s.write('static deserialize(buffer, bufferInfo) {')
+        s.write('static deserialize(buffer, bufferOffset) {')
         with Indent(s):
             s.write('//deserializes a message object of type {}'.format(spec.short_name))
             s.write('let len;')
