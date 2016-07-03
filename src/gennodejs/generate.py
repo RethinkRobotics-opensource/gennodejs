@@ -360,7 +360,7 @@ def write_serialize_length_check(s, field):
 # adds function to serialize builtin types (string, uint8, ...)
 def write_serialize_builtin(s, f):
     if (f.is_array):
-        write_serialize_base(s, '_serializer.ArraySerializer(_serializer.{}, obj.{}, buffer, bufferOffset)'.format(f.base_type, f.name))
+        write_serialize_base(s, '_serializer.{}(obj.{}, buffer, bufferOffset, true)'.format(f.base_type, f.name))
     else:
         write_serialize_base(s, '_serializer.{}(obj.{}, buffer, bufferOffset)'.format(f.type, f.name))
 
@@ -434,7 +434,7 @@ def write_deserialize_builtin(s, f):
         # only create a new array if it has non-constant length
         if not f.array_len:
             s.write('data.{} = new Array(len);'.format(f.name))
-        s.write('_deserializer.ArrayDeserializer(_deserializer.{}, buffer, bufferOffset, data.{})'.format(f.base_type, f.name));
+        s.write('_deserializer.{}(buffer, bufferOffset, data.{})'.format(f.base_type, f.name));
     else:
         s.write('data.{} = _deserializer.{}(buffer, bufferOffset);'.format(f.name, f.base_type))
 
