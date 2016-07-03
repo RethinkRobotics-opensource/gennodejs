@@ -265,12 +265,6 @@ def find_requires(spec):
                     local_deps.append(msg_type)
             else:
                 found_packages.append(field_type_package)
-                # path = find_path_for_package(field_type_package)
-                # if path is None:
-                #     print('Couldn\'t find path for type {}'.format(field.base_type))
-                #     found_packages[field_type_package] =
-                # else:
-                #     found_packages[field_type_package] = path
 
     return found_packages, local_deps
 
@@ -568,17 +562,6 @@ def write_get_message_size(s, spec, search_path):
         s.write('}')
         s.newline()
 
-def write_get_message_fixed_size(s, spec, search_path):
-    """
-    Write a static method to determine if this message type has a fixed size
-    """
-    with Indent(s):
-        s.write('static isFixedSize() {')
-        with Indent(s):
-            s.write('return {};'.format(is_message_fixed_size(spec, search_path)))
-        s.write('}')
-    s.newline()
-
 def write_package_index(s, package_dir):
     s.write('"use strict";')
     s.newline()
@@ -675,7 +658,6 @@ def write_srv_component(s, spec, context, parent, search_path):
     write_serialize(s, spec)
     write_deserialize(s, spec)
     write_get_message_size(s, spec, search_path)
-    write_get_message_fixed_size(s, spec, search_path)
     write_ros_datatype(s, spec)
     write_md5sum(s, context, spec)
     write_message_definition(s, context, spec)
@@ -751,7 +733,6 @@ def generate_msg_from_spec(msg_context, spec, search_path, output_dir, package, 
     write_serialize(s, spec)
     write_deserialize(s, spec)
     write_get_message_size(s, spec, search_path)
-    write_get_message_fixed_size(s, spec, search_path)
     write_ros_datatype(s, spec)
     write_md5sum(s, msg_context, spec)
     write_message_definition(s, msg_context, spec)
