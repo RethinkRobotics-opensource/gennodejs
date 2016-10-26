@@ -44,6 +44,5 @@ macro(_generate_srv_nodejs ARG_PKG ARG_SRV ARG_IFLAGS ARG_MSG_DEPS ARG_GEN_OUTPU
   _generate_nodejs(${ARG_PKG} ${ARG_SRV} "${ARG_IFLAGS}" "${ARG_MSG_DEPS}" "${ARG_GEN_OUTPUT_DIR}/srv")
 endmacro()
 
-
 set(node_js_INSTALL_DIR share/gennodejs)
 set(gennodejs_INSTALL_DIR ${node_js_INSTALL_DIR}/ros)
