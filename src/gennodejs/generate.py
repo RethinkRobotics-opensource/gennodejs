@@ -280,10 +280,12 @@ def write_requires(s, spec, previous_packages=None, prev_deps=None, isSrv=False)
     if previous_packages is None:
         s.write('"use strict";')
         s.newline()
-        s.write('let _ros_msg_utils = require(\'ros_msg_utils\');')
-        s.write('let _serializer = _ros_msg_utils.Serialize;')
-        s.write('let _deserializer = _ros_msg_utils.Deserialize;')
-        s.write('let _finder = _ros_msg_utils.Find;')
+        s.write('const _serializer = _ros_msg_utils.Serialize;')
+        s.write('const _arraySerializer = _serializer.Array;');
+        s.write('const _deserializer = _ros_msg_utils.Deserialize;')
+        s.write('const _arrayDeserializer = _deserializer.Array;');
+        s.write('const _finder = _ros_msg_utils.Find;')
+        s.write('const _getByteLength = _ros_msg_utils.getByteLength;');
         previous_packages = {}
     if prev_deps is None:
         prev_deps = []
@@ -315,9 +317,9 @@ def write_requires(s, spec, previous_packages=None, prev_deps=None, isSrv=False)
     return found_packages, local_deps
 
 def write_msg_constructor_field(s, spec, field):
-    s.write('if (object.hasOwnProperty(\'{}\')) {{'.format(field.name))
+    s.write('if (initObj.hasOwnProperty(\'{}\')) {{'.format(field.name))
     with Indent(s):
-        s.write('this.{} = object.{}'.format(field.name, field.name))
+        s.write('this.{} = initObj.{}'.format(field.name, field.name))
     s.write('}')
     s.write('else {')
     with Indent(s):
@@ -328,13 +330,81 @@ def write_class(s, spec):
     s.write('class {} {{'.format(spec.actual_name))
     with Indent(s):
         # TODO: add optional object argument
-        s.write('constructor(object) {')
+        s.write('constructor(initObj={) {')
         with Indent(s):
-            s.write('object = object || {};')
-            for field in spec.parsed_fields():
-                write_msg_constructor_field(s, spec, field)
+            s.write('if (initObj === null) {')
+            with Indent(s):
+                s.write('// initObj === null is a special case for deserialization where we don\'t initialize fields')
+                for field in spec.parsed_fields():
+                    s.write('this.{} = null;'.format(field.name))
+            s.write('}')
+            s.write('else {')
+            with Indent(s):
+                for field in spec.parsed_fields():
+                    write_msg_constructor_field(s, spec, field)
+            s.write('}')
         s.write('}')
     s.newline()
+
+def get_message_path_from_field(field, pkg):
+    (field_pkg, msg_type) = field.base_type.split('/')
+    if field_pkg == pkg:
+        return msg_type
+    # else
+    return '{}.msg.{}'.format(field_pkg, msg_type)
+
+def write_resolve(s, spec):
+    s.write('static Resolve(msg) {')
+    with Indent(s):
+        s.write('// deep-construct a valid message object instance of whatever was passed in');
+        s.write('if (typeof msg !== \'object\' || msg === null) {')
+        with Indent(s):
+            s.write('msg = {};')
+        s.write('}')
+        s.write('const resolved = new {}(null);'.format(spec.short_name))
+    for field in spec.parsed_fields():
+        if not field.is_builtin:
+            s.write('if (msg.{} !== undefined) {{'.format(field.name))
+            with Indent(s):
+                if field.is_array:
+                    if field.array_len is None:
+                        s.write('resolved.{} = new Array(msg.{}.length);'.format(field.name, field.name))
+                        s.write('for (let i = 0; i < resolved.{}.length; ++i) {{'.format(field.name))
+                        with Indent(s):
+                            s.write('resolved.{}[i] = {}.Resolve(msg.{}[i]);'.format(field.name, get_message_path_from_field(field, spec.package), field.name))
+                        s.write('}')
+                    else:
+                        s.write('resolved.{} = new Array({})'.format(field.name, field.array_len))
+                        s.write('for (let i = 0; i  resolved.{}.length; ++i) {{'.format(field.name))
+                        with Indent(s):
+                            s.write('if (msg.{}.length > i) {{'.format(field.name))
+                            with Indent(s):
+                                s.write('resolved.{}[i] = {}.Resolve(msg.{}[i]);'.format(field.name, get_message_path_from_field(field, spec.package), field.name))
+                            s.write('}')
+                            s.write('else {')
+                            with Indent(s):
+                                s.write('resolved.{}[i] = new {}();'.format(field.name, get_message_path_from_field(field, spec.package)))
+                            s.write('}')
+                        s.write('}')
+                else:
+                    s.write('resolved.{} = {}.Resolve(msg.{})'.format(field.name, get_message_path_from_field(field, spec.package), field.name))
+            s.write('}')
+            s.write('else {')
+            with Indent(s):
+                s.write('resolved.{} = new {}()'.format(field.name, get_message_path_from_field(field, spec.package)))
+            s.write('}')
+        else:
+            s.write('if (msg.{} !== undefined) {{'.format(field.name))
+            with Indent(s):
+                s.write('resolved.{} = msg.{};'.format(field.name, field.name))
+            s.write('}')
+            s.write('else {')
+            with Indent(s):
+                s.write('resolved.{} = {}'.format(field.name, get_default_value(field, spec.package)))
+            s.write('}')
+        s.newline()
+    s.write('return resolved;')
+    s.write('}')
 
 def write_end(s, spec):
     s.write('};')
@@ -360,19 +430,24 @@ def write_serialize_length_check(s, field):
 # adds function to serialize builtin types (string, uint8, ...)
 def write_serialize_builtin(s, f):
     if (f.is_array):
-        write_serialize_base(s, '_serializer.{}(obj.{}, buffer, bufferOffset, true)'.format(f.base_type, f.name))
+        write_serialize_base(s, '_arraySerializer.{}(obj.{}, buffer, bufferOffset, {})'.format(f.base_type, f.name, 'null' if f.array_len is None else f.array_len))
     else:
-        write_serialize_base(s, '_serializer.{}(obj.{}, buffer, bufferOffset)'.format(f.type, f.name))
+        write_serialize_base(s, '_serializer.{}(obj.{}, buffer, bufferOffset)'.format(f.base_type, f.name))
 
 # adds function to serlialize complex type (geometry_msgs/Pose)
 def write_serialize_complex(s, f, thisPackage):
     (package, msg_type) = f.base_type.split('/')
     samePackage =  package == thisPackage
     if (f.is_array):
-        if samePackage:
-            write_serialize_base(s, '_serializer.ArraySerializer({}.serialize, obj.{}, buffer, bufferOffset)'.format(msg_type, f.name))
-        else:
-            write_serialize_base(s, '_serializer.ArraySerializer({}.msg.{}.serialize, obj.{}, buffer, bufferOffset)'.format(package, msg_type, f.name))
+        if f.array_len is None:
+            write_serialize_length(s, f.name)
+        s.write('obj.{}.forEach((val) => {{)'.format(f.name))
+        with Indent(s):
+            if samePackage:
+                write_serialize_base(s, '{}.serialize(val, buffer, bufferOffset)'.format(msg_type))
+            else:
+                write_serialize_base(s, '{}.msg.{}.serialize(val, buffer, bufferOffset)'.format(package, msg_type))
+        s.write('});')
     else:
         if samePackage:
             write_serialize_base(s, '{}.serialize(obj.{}, buffer, bufferOffset)'.format(msg_type, f.name))
@@ -382,9 +457,7 @@ def write_serialize_complex(s, f, thisPackage):
 # writes serialization for a single field in the message
 def write_serialize_field(s, f, package):
     if f.is_array:
-        if not f.array_len:
-            write_serialize_length(s, f.name)
-        else:
+        if f.array_len is not None:
             write_serialize_length_check(s, f)
 
     s.write('// Serialize message field [{}]'.format(f.name))
@@ -416,13 +489,19 @@ def write_deserialize_complex(s, f, thisPackage):
     (package, msg_type) = f.base_type.split('/')
     samePackage = package == thisPackage
     if f.is_array:
-        # only create a new array if it has non-constant length
-        if not f.array_len:
-            s.write('data.{} = new Array(len);'.format(f.name))
-        if samePackage:
-            s.write('_deserializer.ArrayDeserializer({}.deserialize, buffer, bufferOffset, data.{})'.format(msg_type, f.name));
+        if f.array_len is None:
+            write_deserialize_length(s, f.name)
         else:
-            s.write('_deserializer.ArrayDeserializer({}.msg.{}.deserialize, buffer, bufferOffset, data.{})'.format(package, msg_type, f.name));
+            s.write('len = {};'.format(f.array_len))
+
+        s.write('data.{} = new Array(len);'.format(f.name))
+        s.write('for (let i = 0; i < len; ++i) {')
+        with Indent(s):
+            if samePackage:
+                s.write('data.{}[i] = {}.deserialize(buffer, bufferOffset)'.format(f.name, msg_type));
+            else:
+                s.write('data.{}[i] = {}.msg.{}.deserialize(buffer, bufferOffset)'.format(f.name, package, msg_type));
+        s.write('}')
     else:
         if samePackage:
             s.write('data.{} = {}.deserialize(buffer, bufferOffset);'.format(f.name, msg_type))
@@ -431,19 +510,12 @@ def write_deserialize_complex(s, f, thisPackage):
 
 def write_deserialize_builtin(s, f):
     if f.is_array:
-        # only create a new array if it has non-constant length
-        if not f.array_len:
-            s.write('data.{} = new Array(len);'.format(f.name))
-        s.write('_deserializer.{}(buffer, bufferOffset, data.{})'.format(f.base_type, f.name));
+        s.write('data.{} = _arrayDeserializer.{}(buffer, bufferOffset, {})'.format(f.name, f.base_type, 'null' if f.array_len is None else f.array_len));
     else:
         s.write('data.{} = _deserializer.{}(buffer, bufferOffset);'.format(f.name, f.base_type))
 
 
 def write_deserialize_field(s, f, package):
-    if f.is_array:
-        if not f.array_len:
-            write_deserialize_length(s, f.name)
-
     s.write('// Deserialize message field [{}]'.format(f.name))
     if f.is_builtin:
         write_deserialize_builtin(s, f)
@@ -460,7 +532,7 @@ def write_deserialize(s, spec):
         with Indent(s):
             s.write('//deserializes a message object of type {}'.format(spec.short_name))
             s.write('let len;')
-            s.write('let data = new {}();'.format(spec.short_name))
+            s.write('let data = new {}(null);'.format(spec.short_name))
             for f in spec.parsed_fields():
                 write_deserialize_field(s, f, spec.package)
 
@@ -661,6 +733,7 @@ def write_srv_component(s, spec, context, parent, search_path):
     write_ros_datatype(s, spec)
     write_md5sum(s, context, spec)
     write_message_definition(s, context, spec)
+    write_resolve(s, spec)
     s.write('};')
     s.newline()
     write_constants(s, spec)
@@ -736,6 +809,7 @@ def generate_msg_from_spec(msg_context, spec, search_path, output_dir, package, 
     write_ros_datatype(s, spec)
     write_md5sum(s, msg_context, spec)
     write_message_definition(s, msg_context, spec)
+    write_resolve(s, spec)
     write_end(s, spec)
 
     if (not os.path.exists(output_dir)):
