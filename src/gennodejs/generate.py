@@ -330,7 +330,7 @@ def write_class(s, spec):
     s.write('class {} {{'.format(spec.actual_name))
     with Indent(s):
         # TODO: add optional object argument
-        s.write('constructor(initObj={) {')
+        s.write('constructor(initObj={}) {')
         with Indent(s):
             s.write('if (initObj === null) {')
             with Indent(s):
@@ -354,57 +354,58 @@ def get_message_path_from_field(field, pkg):
     return '{}.msg.{}'.format(field_pkg, msg_type)
 
 def write_resolve(s, spec):
-    s.write('static Resolve(msg) {')
     with Indent(s):
-        s.write('// deep-construct a valid message object instance of whatever was passed in');
-        s.write('if (typeof msg !== \'object\' || msg === null) {')
+        s.write('static Resolve(msg) {')
         with Indent(s):
-            s.write('msg = {};')
-        s.write('}')
-        s.write('const resolved = new {}(null);'.format(spec.short_name))
-    for field in spec.parsed_fields():
-        if not field.is_builtin:
-            s.write('if (msg.{} !== undefined) {{'.format(field.name))
+            s.write('// deep-construct a valid message object instance of whatever was passed in');
+            s.write('if (typeof msg !== \'object\' || msg === null) {')
             with Indent(s):
-                if field.is_array:
-                    if field.array_len is None:
-                        s.write('resolved.{} = new Array(msg.{}.length);'.format(field.name, field.name))
-                        s.write('for (let i = 0; i < resolved.{}.length; ++i) {{'.format(field.name))
-                        with Indent(s):
-                            s.write('resolved.{}[i] = {}.Resolve(msg.{}[i]);'.format(field.name, get_message_path_from_field(field, spec.package), field.name))
-                        s.write('}')
-                    else:
-                        s.write('resolved.{} = new Array({})'.format(field.name, field.array_len))
-                        s.write('for (let i = 0; i  resolved.{}.length; ++i) {{'.format(field.name))
-                        with Indent(s):
-                            s.write('if (msg.{}.length > i) {{'.format(field.name))
-                            with Indent(s):
-                                s.write('resolved.{}[i] = {}.Resolve(msg.{}[i]);'.format(field.name, get_message_path_from_field(field, spec.package), field.name))
-                            s.write('}')
-                            s.write('else {')
-                            with Indent(s):
-                                s.write('resolved.{}[i] = new {}();'.format(field.name, get_message_path_from_field(field, spec.package)))
-                            s.write('}')
-                        s.write('}')
+                s.write('msg = {};')
+            s.write('}')
+            s.write('const resolved = new {}(null);'.format(spec.short_name))
+            for field in spec.parsed_fields():
+                if not field.is_builtin:
+                    s.write('if (msg.{} !== undefined) {{'.format(field.name))
+                    with Indent(s):
+                        if field.is_array:
+                            if field.array_len is None:
+                                s.write('resolved.{} = new Array(msg.{}.length);'.format(field.name, field.name))
+                                s.write('for (let i = 0; i < resolved.{}.length; ++i) {{'.format(field.name))
+                                with Indent(s):
+                                    s.write('resolved.{}[i] = {}.Resolve(msg.{}[i]);'.format(field.name, get_message_path_from_field(field, spec.package), field.name))
+                                s.write('}')
+                            else:
+                                s.write('resolved.{} = new Array({})'.format(field.name, field.array_len))
+                                s.write('for (let i = 0; i < resolved.{}.length; ++i) {{'.format(field.name))
+                                with Indent(s):
+                                    s.write('if (msg.{}.length > i) {{'.format(field.name))
+                                    with Indent(s):
+                                        s.write('resolved.{}[i] = {}.Resolve(msg.{}[i]);'.format(field.name, get_message_path_from_field(field, spec.package), field.name))
+                                    s.write('}')
+                                    s.write('else {')
+                                    with Indent(s):
+                                        s.write('resolved.{}[i] = new {}();'.format(field.name, get_message_path_from_field(field, spec.package)))
+                                    s.write('}')
+                                s.write('}')
+                        else:
+                            s.write('resolved.{} = {}.Resolve(msg.{})'.format(field.name, get_message_path_from_field(field, spec.package), field.name))
+                    s.write('}')
+                    s.write('else {')
+                    with Indent(s):
+                        s.write('resolved.{} = {}'.format(field.name, get_default_value(field, spec.package)))
+                    s.write('}')
                 else:
-                    s.write('resolved.{} = {}.Resolve(msg.{})'.format(field.name, get_message_path_from_field(field, spec.package), field.name))
+                    s.write('if (msg.{} !== undefined) {{'.format(field.name))
+                    with Indent(s):
+                        s.write('resolved.{} = msg.{};'.format(field.name, field.name))
+                    s.write('}')
+                    s.write('else {')
+                    with Indent(s):
+                        s.write('resolved.{} = {}'.format(field.name, get_default_value(field, spec.package)))
+                    s.write('}')
+                s.newline()
+            s.write('return resolved;')
             s.write('}')
-            s.write('else {')
-            with Indent(s):
-                s.write('resolved.{} = new {}()'.format(field.name, get_message_path_from_field(field, spec.package)))
-            s.write('}')
-        else:
-            s.write('if (msg.{} !== undefined) {{'.format(field.name))
-            with Indent(s):
-                s.write('resolved.{} = msg.{};'.format(field.name, field.name))
-            s.write('}')
-            s.write('else {')
-            with Indent(s):
-                s.write('resolved.{} = {}'.format(field.name, get_default_value(field, spec.package)))
-            s.write('}')
-        s.newline()
-    s.write('return resolved;')
-    s.write('}')
 
 def write_end(s, spec):
     s.write('};')
@@ -441,7 +442,7 @@ def write_serialize_complex(s, f, thisPackage):
     if (f.is_array):
         if f.array_len is None:
             write_serialize_length(s, f.name)
-        s.write('obj.{}.forEach((val) => {{)'.format(f.name))
+        s.write('obj.{}.forEach((val) => {{'.format(f.name))
         with Indent(s):
             if samePackage:
                 write_serialize_base(s, '{}.serialize(val, buffer, bufferOffset)'.format(msg_type))
@@ -528,7 +529,7 @@ def write_deserialize(s, spec):
     Write the deserialize method
     """
     with Indent(s):
-        s.write('static deserialize(buffer, bufferOffset) {')
+        s.write('static deserialize(buffer, bufferOffset=[0]) {')
         with Indent(s):
             s.write('//deserializes a message object of type {}'.format(spec.short_name))
             s.write('let len;')
@@ -719,6 +720,8 @@ def write_constants(s, spec):
             for c in spec.constants:
                 if is_string(c.type):
                     s.write('{}: \'{}\','.format(c.name.upper(), c.val))
+                elif is_bool(c.type):
+                    s.write('{}: {},'.format(c.name.upper(), 'true' if c.val else 'false'))
                 else:
                     s.write('{}: {},'.format(c.name.upper(), c.val))
         s.write('}')
@@ -745,7 +748,8 @@ def write_srv_end(s, context, spec):
         s.write('Request: {}Request,'.format(name))
         s.write('Response: {}Response,'.format(name))
         md5sum = genmsg.compute_md5(context, spec)
-        s.write('md5sum() {{ return \'{}\'; }}'.format(md5sum))
+        s.write('md5sum() {{ return \'{}\'; }},'.format(md5sum))
+        s.write('datatype() {{ return \'{}\'; }}'.format(spec.full_name))
     s.write('};')
     s.newline()
 
