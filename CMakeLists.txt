@@ -13,15 +13,6 @@ file(WRITE ${CATKIN_DEVEL_PREFIX}/${GENMSG_LANGS_DESTINATION}/gennodejs "JAVASCR
 install(FILES ${CATKIN_DEVEL_PREFIX}/${GENMSG_LANGS_DESTINATION}/gennodejs
   DESTINATION ${GENMSG_LANGS_DESTINATION})
 
-# install base serialization, deserialization files
-set(base_files
-  src/gennodejs/base_serialize.js
-  src/gennodejs/base_deserialize.js
-  src/gennodejs/find.js)
-
-install(FILES ${base_files}
-  DESTINATION ${CATKIN_GLOBAL_SHARE_DESTINATION}/gennodejs)
-
 # drop marker file to prevent rospack from spending time on crawling this folder
 #file(WRITE ${CATKIN_DEVEL_PREFIX}/share/nodejs/rospack_nosubdirs "")
 #install(FILES ${CATKIN_DEVEL_PREFIX}/share/nodejs/rospack_nosubdirs
