@@ -2,6 +2,22 @@
 Changelog for package gennodejs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.0.0 (2017-1-18)
+------------------
+* The following changes make 2.0 incompatible with JavaScript
+messages objects generated in gennodejs 1.x
+* Bundled updates
+  * Optionally accept object when constructing messages
+  * Add md5sum for Service
+  * Updates to generated code to use pre-allocated buffers
+  * Generated code relies on external npm package for
+  base serialization, deserialization, finding other
+  message packages
+  * Handle ros_msg_utils npm package rename
+  * Incorrect argument, push array serialization to ros_msg_utils
+  * Remove unused get message fixed size method
+* Contributors: Chris Smith, Ian McMahon
+
 1.0.3 (2016-5-18)
 ------------------
 * Removed extraneous base file installs
