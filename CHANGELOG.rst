@@ -2,6 +2,11 @@
 Changelog for package gennodejs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.0.1 (2017-2-16)
+------------------
+* Fix an issue uncovered in checking fixed size message fields
+* Contributors: Chris Smith
+
 2.0.0 (2017-1-18)
 ------------------
 * The following changes make 2.0 incompatible with JavaScript
