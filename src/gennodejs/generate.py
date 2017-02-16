@@ -137,7 +137,7 @@ def get_default_value(field, current_message_package):
 def is_message_fixed_size(spec, search_path):
     """Check if a particular message specification has a constant size in bytes"""
     parsed_fields = spec.parsed_fields()
-    types = [f.type for f in parsed_fields]
+    types = [f.base_type for f in parsed_fields]
     variableLengthArrays = [f.is_array and not f.array_len for f in parsed_fields]
     isBuiltin = [f.is_builtin for f in parsed_fields]
     if 'string' in types:
@@ -169,11 +169,11 @@ def get_message_fixed_size(spec, search_path):
         if f.is_builtin:
             type_size = get_type_size(f.base_type)
             if type_size is None:
-                raise Error('Field {} has a non-constant size'.format(f.base_type))
+                raise Exception('Field {} has a non-constant size'.format(f.base_type))
             if not f.is_array:
                 length += type_size
             elif not f.array_len:
-                raise Error('Array field {} has a variable length'.format(f.base_type))
+                raise Exception('Array field {} has a variable length'.format(f.base_type))
             else:
                 length += (f.array_len * type_size)
         else:
@@ -181,7 +181,7 @@ def get_message_fixed_size(spec, search_path):
             field_spec = genmsg.msg_loader.load_msg_by_type(field_msg_context, f.base_type, search_path)
             field_size = get_message_fixed_size(field_spec, search_path)
             if field_size is None:
-                raise Error('Field {} has a non-constant size'.format(f.base_type))
+                raise Exception('Field {} has a non-constant size'.format(f.base_type))
             length += field_size
     return length
 
@@ -556,7 +556,7 @@ def write_get_message_size(s, spec, search_path):
             def get_dynamic_field_length_line(field, query):
                 if field.is_builtin:
                     if not is_string(field.base_type):
-                        raise Error('Unexpected field {} with type {} has unknown length'.format(field.name, field.base_type))
+                        raise Exception('Unexpected field {} with type {} has unknown length'.format(field.name, field.base_type))
                     # it's a string array!
                     return 'length += 4 + {}.length;'.format(query)
                 # else
@@ -595,7 +595,7 @@ def write_get_message_size(s, spec, search_path):
                         else:
                             if f.is_builtin:
                                 if not is_string(f.base_type):
-                                    raise Error('Unexpected field {} with type {} has unknown length'.format(f.name, f.base_type))
+                                    raise Exception('Unexpected field {} with type {} has unknown length'.format(f.name, f.base_type))
                                 # it's a string array!
                                 line_to_write = 'length += 4 + val.length;'
                             else:
@@ -615,7 +615,7 @@ def write_get_message_size(s, spec, search_path):
                         # field size is dynamic!
                         if f.is_builtin:
                             if not is_string(f.base_type):
-                                raise Error('Unexpected field {} with type {} has unknown length'.format(f.name, f.base_type))
+                                raise Exception('Unexpected field {} with type {} has unknown length'.format(f.name, f.base_type))
                             # it's a string array!
                             len_constant_length_fields += 4
                             line_to_write = 'length += object.{}.length;'.format(f.name)
