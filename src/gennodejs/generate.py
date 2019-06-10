@@ -618,7 +618,7 @@ def write_get_message_size(s, spec, search_path):
                                 raise Exception('Unexpected field {} with type {} has unknown length'.format(f.name, f.base_type))
                             # it's a string array!
                             len_constant_length_fields += 4
-                            line_to_write = 'length += object.{}.length;'.format(f.name)
+                            line_to_write = 'length += Buffer.byteLength(object.{}, \'utf8\');'.format(f.name)
                         else:
                             (package, msg_type) = f.base_type.split('/')
                             samePackage = spec.package == package
