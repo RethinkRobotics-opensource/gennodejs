@@ -719,7 +719,7 @@ def write_constants(s, spec):
         with Indent(s):
             for c in spec.constants:
                 if is_string(c.type):
-                    s.write('{}: \'{}\','.format(c.name.upper(), c.val))
+                    s.write('{}: \'{}\','.format(c.name.upper(), c.val.replace("'", "\\'")))
                 elif is_bool(c.type):
                     s.write('{}: {},'.format(c.name.upper(), 'true' if c.val else 'false'))
                 else:
