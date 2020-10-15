@@ -2,6 +2,17 @@
 Changelog for package gennodejs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.0.3 (2020-10-14)
+------------------
+* Need to re-release
+
+2.0.2-1 (2020-02-07)
+------------------
+* Fix to handle unicode characters
+* Updates to support ROS Noetic
+* Support quotes in string constants
+* Contributors: Shane Loretz, Emir Cem Gezer, Matt Bittarelli, Matt Vollrath
+
 2.0.1 (2017-2-16)
 ------------------
 * Fix an issue uncovered in checking fixed size message fields
