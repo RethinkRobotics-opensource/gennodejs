@@ -4,7 +4,7 @@
   schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>gennodejs</name>
-  <version>2.0.1</version>
+  <version>2.0.3</version>
   <description>
   Javascript ROS message and service generators.
   </description>
