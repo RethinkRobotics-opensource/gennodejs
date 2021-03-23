@@ -707,7 +707,7 @@ def write_message_definition(s, msg_context, spec):
             lines = definition.split('\n')
             s.write('return `')
             for line in lines:
-                s.write('{}'.format(line))
+                s.write('{}'.format(line.replace("`", "\\`")))
             s.write('`;')
         s.write('}')
         s.newline()
